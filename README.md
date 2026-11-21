@@ -1,49 +1,80 @@
-# Segmentação de Verduras Verdes
+# Segmentação de Verduras Verdes em Refeições
 
-Projeto de Processamento de Imagens focado na segmentação semântica binária (**verduras verdes vs resto**) utilizando o dataset **FoodSeg103** (`json9473/FoodSeg103`).
+Projeto desenvolvido para a disciplina de **Processamento de Imagens** (tema: **Gastronomia**), com o objetivo de segmentar **verduras verdes** em fotos de refeições e estimar a proporção que elas ocupam no prato.
 
-## Pré-requisitos
+- **Dataset utilizado:** [FoodSeg103 no Hugging Face](https://huggingface.co/datasets/json9473/FoodSeg103) (`7.118` imagens no total: `4.983` de treino e `2.135` de validação).
+
+---
+
+## O que já está pronto neste repositório
+
+Esta primeira etapa cuida do **download, organização e pré-processamento do dataset**, deixando tudo pronto para o treinamento do modelo e para a análise final de área/proporção:
+
+- **Download e organização automática** do FoodSeg103 em splits (`train` e `validation`).
+- **Conversão manual `RGB → HSV`** aplicada em todas as imagens do dataset (sem usar funções prontas de conversão).
+- **Geração de máscaras binárias (`verduras verdes` vs `resto`)** focadas em **13 classes estritamente verdes**:
+  `76` (`spring onion`), `77` (`rape`), `79` (`okra`), `80` (`lettuce`), `82` (`cucumber`), `85` (`asparagus`), `87` (`broccoli`), `88` (`celery stick`), `89` (`cilantro mint`), `90` (`snow peas`), `95` (`green beans`), `96` (`French beans`) e `102` (`salad`).
+- **Análise descritiva da informação (cálculo manual)** em todas as imagens:
+  - **Entropia de Shannon** (geral, por split e por canal `R, G, B, H, S, V` separando verduras vs resto);
+  - **Assimetria (*Skewness*)** e **Curtose (*Kurtosis*)**.
+
+---
+
+## Como rodar na sua máquina
+
+### Pré-requisitos
 - Python `>= 3.10`
-- Gerenciador [`uv`](https://docs.astral.sh/uv/)
+- Gerenciador de pacotes [`uv`](https://docs.astral.sh/uv/)
 
-## Como configurar e baixar o dataset
-1. Instale as dependências:
+### Passo a passo
+1. Instale as dependências do projeto:
    ```
    uv sync
    ```
-2. Execute o menu principal e escolha a opção `1`:
+2. Execute o menu interativo:
    ```
    uv run main.py
    ```
+3. Escolha a opção **`1 - Baixar e preparar dataset completo`**.
 
-## Estrutura gerada em `Dataset/`
+---
+
+## O que é gerado na pasta `Dataset/`
+
 ```text
 Dataset/
-├── id2label.json                    # Mapa oficial de classes (0..103)
-├── verduras_resumo.json             # Entropia geral/por split, estatísticas, classes e entropia por canal
-├── train/
-│   ├── images/                      # Imagens RGB originais (.jpg)
-│   ├── hsv/                         # Imagens convertidas manualmente para HSV (.jpg)
-│   ├── masks/                       # Máscaras originais multiclasse (0..103)
-│   ├── masks_binarias_verduras/     # Máscaras binárias (0 = resto, 255 = verdura verde)
-│   └── imagens_com_verduras.txt     # Lista de IDs que contêm verduras verdes
-└── validation/
-    ├── images/
-    ├── hsv/
-    ├── masks/
-    ├── masks_binarias_verduras/
-    └── imagens_com_verduras.txt
+├── id2label.json                    # Mapa oficial das 104 classes (0..103)
+├── verduras_resumo.json             # Métricas consolidadas do dataset (entropia, assimetria, curtose, contagens)
+├── train/                           # 4.983 fotos
+│   ├── images/                      # Fotos originais em RGB (.jpg)
+│   ├── hsv/                         # Fotos convertidas manualmente para HSV (.jpg)
+│   ├── masks/                       # Máscaras originais multiclasse (0..103, .png)
+│   ├── masks_binarias_verduras/     # Gabarito binário: 0 = resto, 255 = verdura verde (.png)
+│   └── imagens_com_verduras.txt     # Nomes (sem extensão) das imagens que têm verduras verdes
+└── validation/                      # 2.135 exemplos (mesma estrutura acima)
 ```
 
-## Guia rápido
-- **Entradas:** `Dataset/<split>/images/` (RGB) ou `Dataset/<split>/hsv/` (HSV).
-- **Gabarito (*ground truth*):** `Dataset/<split>/masks_binarias_verduras/<id>.png` os pixels são **`0`** (resto) ou **`255`** (verdura verde); normalize dividindo por `255` (ou `mask > 0`) no `DataLoader`.
-- **Classes incluídas como verduras verdes (13 IDs):** `76` (`spring onion`), `77` (`rape`), `79` (`okra`), `80` (`lettuce`), `82` (`cucumber`), `85` (`asparagus`), `87` (`broccoli`), `88` (`celery stick`), `89` (`cilantro mint`), `90` (`snow peas`), `95` (`green beans`), `96` (`French beans`), `102` (`salad`).
+---
 
-## Estrutura de scripts
-- `main.py`: menu interativo que executa todo o pipeline de preparação.
-- `scripts/download_dataset.py`: download e extração do FoodSeg103 do Hugging Face.
-- `scripts/rgb_to_hsv.py`: conversão manual RGB → HSV em paralelo.
-- `scripts/binary_masks.py`: geração das máscaras binárias de verduras verdes e contagem por classe.
-- `scripts/entropy.py`: cálculo de entropia de Shannon (geral, por split e por canal RGB/HSV).
-- `scripts/utils.py`: utilitários compartilhados de arquivos e JSON.
+## Dicas importantes para quem vai treinar e analisar
+
+### Para o treino do modelo
+- **Entradas:** use `Dataset/<split>/images/<id>.jpg` (RGB) ou `Dataset/<split>/hsv/<id>.jpg` (HSV) inclusive seria interessante treinar nos dois e comparar os resultados.
+- **Máscaras (`masks_binarias_verduras/`):**
+  - Os pixels estão salvos como **`0`** (resto) e **`255`** (verdura verde) para facilitar a visualização no computador e comparacao.
+- **Desbalanceamento:** apenas **~6,14%** dos pixels do treino são verduras verdes (`2.526` de `4.983` imagens têm verduras). Use `imagens_com_verduras.txt` para filtrar/balancear os *batches* e prefira uma *loss* combinada .
+
+### Para o cálculo de área e visualização
+- O gabarito de referência para comparar com as máscaras preditas pelo modelo está em `Dataset/validation/masks_binarias_verduras/`.
+- Todas as estatísticas descritivas já calculadas do dataset (para usar nas tabelas do artigo) ficam em `Dataset/verduras_resumo.json`.
+
+---
+
+## Organização do código
+
+- `main.py`: menu principal interativo que executa todo o pipeline de preparação.
+- `scripts/download_dataset.py`: baixa e extrai o FoodSeg103 do Hugging Face.
+- `scripts/rgb_to_hsv.py`: conversão manual `RGB → HSV` em paralelo.
+- `scripts/binary_masks.py`: gera `masks_binarias_verduras/`, `imagens_com_verduras.txt` e contagem por verdura.
+- `scripts/entropy.py`: calcula manualmente entropia, assimetria, curtose e entropia por canal (`R, G, B, H, S, V`).
+- `scripts/utils.py`: helpers compartilhados de arquivos e atualização do `verduras_resumo.json`.
