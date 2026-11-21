@@ -1,0 +1,12 @@
+[project]
+name = "sbc-processamento-de-imagems"
+version = "0.1.0"
+description = "Projeto de segmentação de imagens com FoodSeg103"
+requires-python = ">=3.10"
+dependencies = [
+    "datasets>=2.18.0",
+    "huggingface_hub>=0.23.0",
+    "numpy>=1.26.0",
+    "pillow>=10.0.0",
+    "tqdm>=4.66.0",
+]

@@ -1,0 +1,8 @@
+# Conteúdo do dataset (baixado e gerado localmente pelo script)
+Dataset/*
+!Dataset/.gitkeep
+
+# Ambiente virtual e caches Python
+.venv/
+__pycache__/
+*.py[cod]
